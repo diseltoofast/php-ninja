@@ -3,6 +3,8 @@
     "description": "PHP library for working with binary data",
     "type": "library",
     "license": "MIT",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "config": {
         "sort-packages": true
     },
