@@ -13,7 +13,9 @@ use InvalidArgumentException;
 class Stream implements ReaderInterface, WriterInterface
 {
     /**
-     * The handle to the stream.
+     * The handle to the stream (resource).
+     *
+     * @var resource
      */
     private $handle;
     private string $endian;
@@ -25,10 +27,12 @@ class Stream implements ReaderInterface, WriterInterface
      */
     public function __construct(mixed $input)
     {
-        if (!is_resource($input)) {
+        if (is_resource($input)) {
+            $this->handle = $input;
+        } elseif (is_string($input)) {
             $this->setInputToMemory($input);
         } else {
-            $this->handle = $input;
+            throw new InvalidArgumentException('Input must be a string or a stream resource.');
         }
 
         $this->endian = Endian::detect();
@@ -203,8 +207,8 @@ class Stream implements ReaderInterface, WriterInterface
 
     public function writeInt8(int $value): void
     {
-        if ($value >= 0x80) {
-            throw new LengthException('Invalid length specified.');
+        if ($value < -0x80 || $value > 0x7f) {
+            throw new LengthException('Value out of range for signed 8-bit integer.');
         }
 
         $bytes = pack('c', $value);
@@ -213,8 +217,8 @@ class Stream implements ReaderInterface, WriterInterface
 
     public function writeUInt8(int $value): void
     {
-        if ($value > 0xff) {
-            throw new LengthException('Invalid length specified.');
+        if ($value < 0 || $value > 0xff) {
+            throw new LengthException('Value out of range for unsigned 8-bit integer.');
         }
 
         $bytes = pack('C', $value);
@@ -223,8 +227,8 @@ class Stream implements ReaderInterface, WriterInterface
 
     public function writeInt16(int $value): void
     {
-        if ($value >= 0x8000) {
-            throw new LengthException('Invalid length specified.');
+        if ($value < -0x8000 || $value > 0x7fff) {
+            throw new LengthException('Value out of range for signed 16-bit integer.');
         }
 
         $bytes = pack('s', $value);
@@ -233,8 +237,8 @@ class Stream implements ReaderInterface, WriterInterface
 
     public function writeUInt16(int $value): void
     {
-        if ($value > 0xffff) {
-            throw new LengthException('Invalid length specified.');
+        if ($value < 0 || $value > 0xffff) {
+            throw new LengthException('Value out of range for unsigned 16-bit integer.');
         }
 
         $bytes = pack($this->endian === Endian::ENDIAN_BIG ? 'n' : 'v', $value);
@@ -243,8 +247,8 @@ class Stream implements ReaderInterface, WriterInterface
 
     public function writeInt32(int $value): void
     {
-        if ($value >= 0x80000000) {
-            throw new LengthException('Invalid length specified.');
+        if ($value < -0x80000000 || $value > 0x7fffffff) {
+            throw new LengthException('Value out of range for signed 32-bit integer.');
         }
 
         $bytes = pack('l', $value);
@@ -253,8 +257,8 @@ class Stream implements ReaderInterface, WriterInterface
 
     public function writeUInt32(int $value): void
     {
-        if ($value > 0xffffffff) {
-            throw new LengthException('Invalid length specified.');
+        if ($value < 0 || $value > 0xffffffff) {
+            throw new LengthException('Value out of range for unsigned 32-bit integer.');
         }
 
         $bytes = pack($this->endian === Endian::ENDIAN_BIG ? 'N' : 'V', $value);
@@ -263,8 +267,12 @@ class Stream implements ReaderInterface, WriterInterface
 
     public function writeInt64(int $value): void
     {
-        if ($value >= 0x8000000000000000) {
-            throw new LengthException('Invalid length specified.');
+        if (PHP_INT_SIZE < 8) {
+            throw new LengthException('Signed 64-bit integers require a 64-bit PHP build.');
+        }
+
+        if ($value < -0x8000000000000000 || $value > 0x7fffffffffffffff) {
+            throw new LengthException('Value out of range for signed 64-bit integer.');
         }
 
         $bytes = pack('q', $value);
@@ -273,8 +281,12 @@ class Stream implements ReaderInterface, WriterInterface
 
     public function writeUInt64(int $value): void
     {
-        if ($value > 0xffffffffffffffff) {
-            throw new LengthException('Invalid length specified.');
+        if (PHP_INT_SIZE < 8) {
+            throw new LengthException('Unsigned 64-bit integers require a 64-bit PHP build.');
+        }
+
+        if ($value < 0 || $value > 0xffffffffffffffff) {
+            throw new LengthException('Value out of range for unsigned 64-bit integer.');
         }
 
         $bytes = pack($this->endian === Endian::ENDIAN_BIG ? 'J' : 'P', $value);

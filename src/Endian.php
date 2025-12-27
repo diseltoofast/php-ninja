@@ -24,13 +24,17 @@ class Endian
         return self::ENDIAN_BIG;
     }
 
-    /** Converts the endian of a number from big to little or vise-versa */
+    /** Converts the endian of a number from big to little or vice-versa. */
     public static function convert(int $value): int
     {
         $data = dechex($value);
 
         if (strlen($data) <= 2) {
             return $value;
+        }
+
+        if (strlen($data) % 2 !== 0) {
+            $data = '0' . $data;
         }
 
         $unpack = unpack("H*", strrev(pack("H*", $data)));
